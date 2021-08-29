@@ -30,6 +30,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 #include <sys/types.h>
 
@@ -134,7 +135,9 @@ tnt_reply_hdr0(struct tnt_reply *r, const char *buf, size_t size, size_t *off) {
 	while (n-- > 0) {
 		if (mp_typeof(*p) != MP_UINT)
 			return -1;
-		uint32_t key = mp_decode_uint(&p);
+		uint64_t key64 = mp_decode_uint(&p);
+		assert(key64 <= UINT_MAX);
+		uint32_t key = (uint32_t)key64;
 		if (mp_typeof(*p) != MP_UINT)
 			return -1;
 		switch (key) {
@@ -178,7 +181,9 @@ tnt_reply_body0(struct tnt_reply *r, const char *buf, size_t size, size_t *off) 
 	uint64_t bitmap = 0;
 	uint32_t n = mp_decode_map(&p);
 	while (n-- > 0) {
-		uint32_t key = mp_decode_uint(&p);
+		uint64_t key64 = mp_decode_uint(&p);
+		assert(key64 <= UINT32_MAX);
+		uint32_t key = (uint32_t)key64;
 		switch (key) {
 		case TNT_ERROR: {
 			if (mp_typeof(*p) != MP_STR)

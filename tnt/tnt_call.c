@@ -35,7 +35,8 @@ tnt_rpc_base(struct tnt_stream *s, const char *proc, size_t proc_len,
 
 	data = mp_encode_map(data, 2);
 	data = mp_encode_uint(data, fld);
-	data = mp_encode_strl(data, proc_len);
+	assert(proc_len <= UINT32_MAX);
+	data = mp_encode_strl(data, (uint32_t)proc_len);
 	v[2].iov_base = body_start;
 	v[2].iov_len  = data - body_start;
 	v[3].iov_base = (void *)proc;

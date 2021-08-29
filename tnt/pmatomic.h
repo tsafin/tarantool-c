@@ -107,8 +107,16 @@
 #define	__PM_GNUC_ATOMICS
 #elif defined(__GNUC__)
 #define	__PM_SYNC_ATOMICS
+#elif defined(_MSC_VER)
+#define __PM_MSVC_ATOMICS
 #else
 #error "pmatomic.h does not support your compiler"
+#endif
+
+#if defined(__clang__) || defined(__gcc__)
+#define PM_GCC_ATTRIBUTE(x) __attribute__(x)
+#elif defined(_MSC_VER)
+#define PM_GCC_ATTRIBUTE(x)
 #endif
 
 /*
@@ -210,26 +218,30 @@ typedef enum {
  */
 
 static __inline void
-pm_atomic_thread_fence(pm_memory_order __order __attribute__((__unused__)))
+pm_atomic_thread_fence(pm_memory_order __order PM_GCC_ATTRIBUTE((__unused__)))
 {
 
 #ifdef __PM_CLANG_ATOMICS
 	__c11_atomic_thread_fence(__order);
 #elif defined(__PM_GNUC_ATOMICS)
 	__atomic_thread_fence(__order);
+#elif defined(__PM_MSVC_ATOMICS)
+	__msvc_thread_fence(__order);
 #else
 	__sync_synchronize();
 #endif
 }
 
 static __inline void
-pm_atomic_signal_fence(pm_memory_order __order __attribute__((__unused__)))
+pm_atomic_signal_fence(pm_memory_order __order PM_GCC_ATTRIBUTE((__unused__)))
 {
 
 #ifdef __PM_CLANG_ATOMICS
 	__c11_atomic_signal_fence(__order);
 #elif defined(__PM_GNUC_ATOMICS)
 	__atomic_signal_fence(__order);
+#elif defined(__PM_MSVC_ATOMICS)
+	__msvc_signal_fence(__order);
 #else
 	__asm volatile ("" ::: "memory");
 #endif
@@ -360,6 +372,17 @@ typedef _Atomic(__uintmax_t)		atomic_uintmax_t;
 	__atomic_load_n(object, order)
 #define	pm_atomic_store_explicit(object, desired, order)			\
 	__atomic_store_n(object, desired, order)
+#elif defined(__PM_MSVC_ATOMICS)
+#define	pm_atomic_compare_exchange_strong_explicit(object, expected, desired, success, failure)
+#define	pm_atomic_compare_exchange_weak_explicit(object, expected, desired, success, failure)
+#define	pm_atomic_exchange_explicit(object, desired, order)
+#define	pm_atomic_fetch_add_explicit(object, operand, order)
+#define	pm_atomic_fetch_and_explicit(object, operand, order)
+#define	pm_atomic_fetch_or_explicit(object, operand, order)
+#define	pm_atomic_fetch_sub_explicit(object, operand, order)
+#define	pm_atomic_fetch_xor_explicit(object, operand, order)
+#define	pm_atomic_load_explicit(object, order)
+#define	pm_atomic_store_explicit(object, desired, order)
 #else
 #define	__pm_atomic_apply_stride(object, operand) \
 	(((__typeof__(*(object)))0) + (operand))
@@ -490,5 +513,17 @@ atomic_flag_clear(volatile atomic_flag *__object)
 #endif /* !_KERNEL */
 
 #endif
+
+#if defined(__PM_MSVC_ATOMICS)
+void
+__msvc_thread_fence(pm_memory_order __order PM_GCC_ATTRIBUTE((__unused__)))
+{
+}
+
+void
+__msvc_signal_fence(pm_memory_order __order PM_GCC_ATTRIBUTE((__unused__)))
+{
+}
+#endif /* __PM_MSVC_ATOMICS */
 
 #endif /* !_STDATOMIC_H_ */

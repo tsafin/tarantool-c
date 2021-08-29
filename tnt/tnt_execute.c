@@ -37,7 +37,8 @@ tnt_execute(struct tnt_stream *s, const char *expr, size_t elen,
 
 	data = mp_encode_map(data, 2);
 	data = mp_encode_uint(data, TNT_SQL_TEXT);
-	data = mp_encode_strl(data, elen);
+	assert(elen <= UINT32_MAX);
+	data = mp_encode_strl(data, (uint32_t)elen);
 	v[2].iov_base = body_start;
 	v[2].iov_len = data - body_start;
 	v[3].iov_base = (void *) expr;

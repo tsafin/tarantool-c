@@ -7,6 +7,9 @@
 #include <direct.h>
 #include <process.h>
 
+#pragma warning(push)
+#pragma warning(disable: 5105)
+
 #pragma comment( lib, "ws2_32" )
 #include <winsock2.h>
 #include <WS2tcpip.h>
@@ -41,12 +44,15 @@ struct iovec {
 };
 
 // TODO - implement these separately for file and socket descriptors
-// ssize_t readv(int filedes, const struct iovec *vector, int count);
-// ssize_t writev(int filedes, const struct iovec *vector, int count);
+ssize_t readv(int filedes, const struct iovec *vector, int count);
+ssize_t writev(int filedes, const struct iovec *vector, int count);
 
 
 #ifdef	__cplusplus
 }
 #endif
+
+#pragma warning (pop)
+
 #endif /* _WIN32 */
 #endif /* _VCUNISTD_H_ */
