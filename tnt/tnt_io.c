@@ -109,6 +109,31 @@ int gettimeofday(struct timeval* tp, struct timezone* tzp)
 
 	return 0;
 }
+
+/*
+ * Windows writev version
+*/
+ssize_t
+writev(int fd, const struct iovec *iov, int iovcnt)
+{
+	/* better to preallocte iovect but one needs to do it thread safe. Another way is to use alloca
+	 or variable length array  but I considering these harmfull. */
+	WSABUF* win_buf = malloc(sizeof(WSABUF)*iovcnt);
+	if (!win_buf)
+		return -1;
+	ssize_t tot_len = 0;
+	for (int i = 0; i < iovcnt; ++i) {
+		win_buf[i].buf = iov[i].iov_base;
+		win_buf[i].len = (ULONG)iov[i].iov_len;
+		tot_len += (ssize_t)iov[i].iov_len;
+	}
+
+	int rc = WSASend(fd, win_buf, iovcnt, 0, 0, 0, 0);
+	free(win_buf);
+
+	return  (rc == 0) ? tot_len : -1;
+}
+
 #endif
 
 static enum tnt_error

@@ -217,6 +217,11 @@ typedef enum {
  * 7.17.4 Fences.
  */
 
+#ifdef __PM_MSVC_ATOMICS
+void __msvc_thread_fence(pm_memory_order __order);
+void __msvc_signal_fence(pm_memory_order __order);
+#endif
+
 static __inline void
 pm_atomic_thread_fence(pm_memory_order __order PM_GCC_ATTRIBUTE((__unused__)))
 {
@@ -462,7 +467,7 @@ __extension__ ({							\
 #define	pm_atomic_fetch_xor(object, operand)				\
 	pm_atomic_fetch_xor_explicit(object, operand, pm_memory_order_seq_cst)
 #define	pm_atomic_load(object)						\
-	pm_atomic_load_explicit(object, pm_memory_order_seq_cst)
+	InterlockedOr(object, 0) // pm_atomic_load_explicit(object, pm_memory_order_seq_cst)
 #define	pm_atomic_store(object, desired)					\
 	pm_atomic_store_explicit(object, desired, pm_memory_order_seq_cst)
 #endif /* !_KERNEL */
@@ -515,15 +520,35 @@ atomic_flag_clear(volatile atomic_flag *__object)
 #endif
 
 #if defined(__PM_MSVC_ATOMICS)
-void
+
+inline void
 __msvc_thread_fence(pm_memory_order __order PM_GCC_ATTRIBUTE((__unused__)))
 {
+	if (__order == pm_memory_order_relaxed) {
+		return;
+	}
+
+#if defined(_M_IX86) || defined(_M_X64)
+	_ReadWriteBarrier();
+	if (__order == pm_memory_order_seq_cst) {
+		volatile long guard;
+		_InterlockedIncrement(&guard);
+		(void)guard;
+		_ReadWriteBarrier();
+	}
+#elif defined(_M_ARM) || defined(_M_ARM64)
+    _Memory_barrier();
+#endif // unsupported hardware
 }
 
-void
+inline void
 __msvc_signal_fence(pm_memory_order __order PM_GCC_ATTRIBUTE((__unused__)))
 {
+	if (__order != pm_memory_order_relaxed) {
+	    _ReadWriteBarrier();
+	}
 }
+
 #endif /* __PM_MSVC_ATOMICS */
 
 #endif /* !_STDATOMIC_H_ */
